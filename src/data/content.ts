@@ -128,6 +128,16 @@ export const PLAN: PlanGroup[] = [
   },
 ]
 
+/** Sjekkliste før budrunden — avkrysning lagres i samme checked-map som planen. */
+export const BID_CHECKS: { id: string; text: string }[] = [
+  { id: 'b1', text: 'Les hele tilstandsrapporten — noter alle TG2/TG3 og hva utbedring vil koste' },
+  { id: 'b2', text: 'Les salgsoppgaven og selgers egenerklæring, og spør megler om alt som er uklart' },
+  { id: 'b3', text: 'Borettslag: sjekk årsregnskap, fellesgjeld, vedlikeholdsplan og om laget har IN-ordning' },
+  { id: 'b4', text: 'Sjekk hva sammenlignbare boliger i området faktisk er solgt for' },
+  { id: 'b5', text: 'Bekreft at finansieringsbeviset er gyldig og dekker totalprisen' },
+  { id: 'b6', text: 'Sett maksgrensen din før budrunden starter — og hold den' },
+]
+
 export const NECK_LABELS: Record<string, string> = {
   debt: 'Gjeldsgrad',
   ek: 'Egenkapital',

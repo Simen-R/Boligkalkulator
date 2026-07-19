@@ -5,6 +5,7 @@ import { RulesTab } from './components/RulesTab'
 import { BanksTab } from './components/BanksTab'
 import { BsuTab } from './components/BsuTab'
 import { PlanTab } from './components/PlanTab'
+import { BoligsjekkTab } from './components/BoligsjekkTab'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'kalkulator', label: 'Kalkulator' },
@@ -12,6 +13,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'banker', label: 'Banker og bytte' },
   { id: 'bsu', label: 'BSU og førstehjem' },
   { id: 'plan', label: 'Plan' },
+  { id: 'boligsjekk', label: 'Boligsjekk' },
 ]
 
 export default function App() {
@@ -56,7 +58,8 @@ export default function App() {
       {tab === 'regler' && <RulesTab />}
       {tab === 'banker' && <BanksTab state={state} update={update} />}
       {tab === 'bsu' && <BsuTab />}
-      {tab === 'plan' && <PlanTab state={state} update={update} />}
+      {tab === 'plan' && <PlanTab state={state} update={update} onOpenSjekk={() => setTab('boligsjekk')} />}
+      {tab === 'boligsjekk' && <BoligsjekkTab state={state} update={update} />}
     </div>
   )
 }

@@ -1,7 +1,26 @@
 import { useCallback, useState } from 'react'
 
-export type Tab = 'kalkulator' | 'regler' | 'banker' | 'bsu' | 'plan'
+export type Tab = 'kalkulator' | 'regler' | 'banker' | 'bsu' | 'plan' | 'boligsjekk'
 export type DebtMode = 'samlet' | 'person'
+export type Eieform = 'selveier' | 'andel'
+
+/** Nøkkeltall for en konkret bolig (fra FINN-annonse og tilstandsrapport). */
+export interface ListingState {
+  boligtype: string
+  eieform: Eieform
+  pris: number
+  fellesgjeld: number
+  felleskost: number
+  /** 0 = anslås automatisk ut fra eieform */
+  omkostninger: number
+  areal: number
+  byggeaar: number
+  soverom: number
+  /** Energimerke A–G, tom streng = ukjent */
+  energi: string
+  tg2: number
+  tg3: number
+}
 
 export interface AppState {
   borrowers: 1 | 2
@@ -28,6 +47,7 @@ export interface AppState {
   byNew: number
   byAar: number
   checked: Record<string, boolean>
+  listing: ListingState
 }
 
 export const DEFAULT_STATE: AppState = {
@@ -55,6 +75,20 @@ export const DEFAULT_STATE: AppState = {
   byNew: 5.1,
   byAar: 25,
   checked: {},
+  listing: {
+    boligtype: '',
+    eieform: 'selveier',
+    pris: 0,
+    fellesgjeld: 0,
+    felleskost: 0,
+    omkostninger: 0,
+    areal: 0,
+    byggeaar: 0,
+    soverom: 0,
+    energi: '',
+    tg2: 0,
+    tg3: 0,
+  },
 }
 
 const STORAGE_KEY = 'bolig_calc_v3'
@@ -63,7 +97,8 @@ function loadState(): AppState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return DEFAULT_STATE
-    return { ...DEFAULT_STATE, ...JSON.parse(raw) }
+    const parsed = JSON.parse(raw)
+    return { ...DEFAULT_STATE, ...parsed, listing: { ...DEFAULT_STATE.listing, ...(parsed.listing ?? {}) } }
   } catch {
     return DEFAULT_STATE
   }

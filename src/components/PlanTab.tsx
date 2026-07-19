@@ -4,9 +4,10 @@ import type { AppState } from '../state'
 interface Props {
   state: AppState
   update: (patch: Partial<AppState>) => void
+  onOpenSjekk?: () => void
 }
 
-export function PlanTab({ state: s, update }: Props) {
+export function PlanTab({ state: s, update, onOpenSjekk }: Props) {
   const total = PLAN.reduce((n, g) => n + g.items.length, 0)
   const done = PLAN.reduce((n, g) => n + g.items.filter((it) => s.checked[it.id]).length, 0)
   const pct = Math.round((done / total) * 100)
@@ -59,6 +60,21 @@ export function PlanTab({ state: s, update }: Props) {
           </div>
         ))}
       </div>
+
+      {onOpenSjekk && (
+        <div className="info-box plan-cta">
+          <div>
+            <h4>Fant du en bolig du vurderer?</h4>
+            <p>
+              Lim inn FINN-annonsen i Boligsjekk, så får du totalpris, månedskostnad, maks budgrense og røde flagg —
+              målt mot dine egne tall.
+            </p>
+          </div>
+          <button type="button" className="btn" onClick={onOpenSjekk}>
+            Åpne Boligsjekk
+          </button>
+        </div>
+      )}
     </section>
   )
 }
