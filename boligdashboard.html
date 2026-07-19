@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boligkjøp-dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --ink: #1a2332;
+    --muted: #5c6b7f;
+    --line: #e3e7ec;
+    --accent: #0f5c5a;
+    --accent-soft: #e3f0ef;
+    --warn: #b45309;
+    --warn-soft: #fef3e2;
+    --good: #15803d;
+    --good-soft: #e8f5ec;
+    --bad: #b91c1c;
+    --bad-soft: #fdecec;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--ink); font-size: 14px; line-height: 1.5;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  header.top { margin-bottom: 12px; }
+  header.top h1 { font-size: 20px; font-weight: 700; }
+  header.top p { color: var(--muted); font-size: 12.5px; }
+
+  nav.tabs { display: flex; gap: 4px; flex-wrap: wrap; margin: 14px 0; border-bottom: 2px solid var(--line); }
+  nav.tabs button {
+    border: none; background: none; padding: 8px 14px; font-size: 13.5px; font-weight: 600;
+    color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px;
+  }
+  nav.tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
+  nav.tabs button:hover { color: var(--ink); }
+
+  .grid { display: grid; gap: 12px; }
+  .grid.two { grid-template-columns: 1fr 1fr; }
+  .grid.three { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 760px) { .grid.two, .grid.three { grid-template-columns: 1fr; } }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  .card h2 { font-size: 15px; margin-bottom: 10px; }
+  .card h3 { font-size: 13.5px; margin: 12px 0 6px; }
+  .card p.sub { color: var(--muted); font-size: 12.5px; margin-top: -6px; margin-bottom: 10px; }
+
+  label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin: 10px 0 3px; }
+  input[type="number"], select {
+    width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 7px;
+    font-size: 14px; background: #fff; color: var(--ink);
+  }
+  input:focus, select:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  .row { display: flex; gap: 10px; }
+  .row > div { flex: 1; }
+
+  .kpi-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; }
+  @media (max-width: 760px) { .kpi-strip { grid-template-columns: repeat(2, 1fr); } }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .kpi .lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .kpi .val { font-size: 20px; font-weight: 700; margin-top: 2px; }
+  .kpi .note { font-size: 11.5px; color: var(--muted); }
+  .kpi.hero { background: var(--accent); border-color: var(--accent); }
+  .kpi.hero .lbl, .kpi.hero .note { color: #cfe4e3; }
+  .kpi.hero .val { color: #fff; }
+
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 11.5px; font-weight: 600; }
+  .pill.good { background: var(--good-soft); color: var(--good); }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); }
+  .pill.bad { background: var(--bad-soft); color: var(--bad); }
+  .pill.info { background: var(--accent-soft); color: var(--accent); }
+
+  .hint { font-size: 12px; color: var(--muted); background: var(--bg); border-radius: 7px; padding: 8px 10px; margin-top: 8px; }
+  .flaske { border-left: 3px solid var(--warn); background: var(--warn-soft); padding: 10px 12px; border-radius: 0 8px 8px 0; margin-top: 10px; font-size: 13px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); padding: 7px 8px; border-bottom: 2px solid var(--line); }
+  td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .rule-card { border-left: 3px solid var(--accent); padding: 10px 14px; background: var(--card); border-radius: 0 10px 10px 0; border-top: 1px solid var(--line); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .rule-card b { display: block; margin-bottom: 3px; }
+  .rule-card span { font-size: 12.5px; color: var(--muted); }
+
+  .check { display: flex; gap: 10px; align-items: flex-start; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+  .check:last-child { border-bottom: none; }
+  .check input { margin-top: 3px; width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
+  .check .t { font-weight: 600; font-size: 13px; }
+  .check .d { font-size: 12.5px; color: var(--muted); }
+  .check.done .t, .check.done .d { text-decoration: line-through; opacity: .55; }
+  .phase { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); margin: 14px 0 4px; }
+
+  .chartbox { position: relative; height: 190px; margin-top: 10px; }
+  footer { margin-top: 18px; font-size: 11.5px; color: var(--muted); }
+  a { color: var(--accent); }
+  .tabpane { display: none; }
+  .tabpane.active { display: block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Boligkjøp-dashboard</h1>
+    <p>Planlegging mot kjøp om ca. ett år · førstegangskjøper · tall og regler per juli 2026</p>
+  </header>
+
+  <div class="kpi-strip">
+    <div class="kpi hero">
+      <div class="lbl">Maks kjøpesum (estimat)</div>
+      <div class="val" id="kpiKjopesum">–</div>
+      <div class="note" id="kpiKjopesumNote"></div>
+    </div>
+    <div class="kpi">
+      <div class="lbl">Maks nytt lån</div>
+      <div class="val" id="kpiLaan">–</div>
+      <div class="note" id="kpiLaanNote"></div>
+    </div>
+    <div class="kpi">
+      <div class="lbl">Månedskostnad</div>
+      <div class="val" id="kpiTermin">–</div>
+      <div class="note" id="kpiTerminNote"></div>
+    </div>
+    <div class="kpi">
+      <div class="lbl">Flaskehals</div>
+      <div class="val" id="kpiFlaske" style="font-size:15px;">–</div>
+      <div class="note" id="kpiFlaskeNote"></div>
+    </div>
+  </div>
+
+  <nav class="tabs">
+    <button data-tab="kalk" class="active">Kalkulator</button>
+    <button data-tab="regler">Regler</button>
+    <button data-tab="banker">Banker &amp; bytte</button>
+    <button data-tab="bsu">BSU &amp; førstehjem</button>
+    <button data-tab="plan">Plan (12 mnd)</button>
+  </nav>
+
+  <!-- ============ KALKULATOR ============ -->
+  <div class="tabpane active" id="tab-kalk">
+    <div class="grid two">
+      <div class="card">
+        <h2>Din situasjon</h2>
+        <p class="sub">Alt lagres automatisk lokalt på denne maskinen.</p>
+
+        <label>Antall låntakere</label>
+        <select id="inLantakere">
+          <option value="1">1 – kjøper alene</option>
+          <option value="2">2 – kjøper sammen</option>
+        </select>
+
+        <div class="row">
+          <div>
+            <label>Bruttoinntekt per år – person 1 (kr)</label>
+            <input type="number" id="inInntekt1" step="10000" min="0">
+          </div>
+          <div id="wrapInntekt2">
+            <label>Bruttoinntekt per år – person 2 (kr)</label>
+            <input type="number" id="inInntekt2" step="10000" min="0">
+          </div>
+        </div>
+
+        <label>Egenkapital i dag – inkl. BSU (kr)</label>
+        <input type="number" id="inEk" step="10000" min="0">
+
+        <label>Planlagt sparing frem til kjøp (kr per måned)</label>
+        <input type="number" id="inSparing" step="500" min="0">
+
+        <label>Antall barn (forsørgeransvar)</label>
+        <input type="number" id="inBarn" step="1" min="0" max="10">
+
+        <h3>Eksisterende gjeld</h3>
+        <div class="row">
+          <div>
+            <label>Studielån (kr)</label>
+            <input type="number" id="inStudielaan" step="10000" min="0">
+          </div>
+          <div>
+            <label>Billån / annet lån (kr)</label>
+            <input type="number" id="inBillaan" step="10000" min="0">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Forbrukslån (kr)</label>
+            <input type="number" id="inForbruk" step="5000" min="0">
+          </div>
+          <div>
+            <label>Kredittkort – total ramme (kr)</label>
+            <input type="number" id="inKreditt" step="5000" min="0">
+          </div>
+        </div>
+        <div class="hint">Banken regner hele kredittkort<b>rammen</b> som gjeld, selv om kortet er ubrukt. Å si opp kort du ikke bruker øker låneevnen direkte.</div>
+
+        <h3>Forutsetninger (juster ved behov)</h3>
+        <div class="row">
+          <div>
+            <label>Boliglånsrente (%)</label>
+            <input type="number" id="inRente" step="0.05" min="0" max="15">
+          </div>
+          <div>
+            <label>Løpetid (år)</label>
+            <input type="number" id="inLopetid" step="1" min="5" max="30">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Estimert skatt (% av brutto)</label>
+            <input type="number" id="inSkatt" step="1" min="0" max="60">
+          </div>
+          <div>
+            <label>Boligtype (omkostninger)</label>
+            <select id="inBoligtype">
+              <option value="selveier">Brukt selveier (2,5 % dok.avgift)</option>
+              <option value="borettslag">Borettslag / nybygg (lave omk.)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h2>De tre grensene banken tester deg mot</h2>
+          <p class="sub">Den laveste av de tre avgjør hvor mye du får låne.</p>
+          <div class="chartbox"><canvas id="chartGrenser"></canvas></div>
+          <table style="margin-top:10px;">
+            <tr><td>1. Gjeldsgrad (maks 5 × inntekt, minus dagens gjeld)</td><td class="num" id="rGjeldsgrad">–</td></tr>
+            <tr><td>2. Egenkapitalkrav (10 % + omkostninger)</td><td class="num" id="rEk">–</td></tr>
+            <tr><td>3. Betjeningsevne (stresstest, rente +3 pp / min 7 %)</td><td class="num" id="rBetjening">–</td></tr>
+          </table>
+          <div class="flaske" id="flaskeBox" style="display:none;"></div>
+        </div>
+
+        <div class="card" style="margin-top:12px;">
+          <h2>Om ett år (med planlagt sparing)</h2>
+          <table>
+            <tr><td>Egenkapital om 12 mnd</td><td class="num" id="rEk12">–</td></tr>
+            <tr><td>Maks kjøpesum om 12 mnd</td><td class="num" id="rKjop12">–</td></tr>
+            <tr><td>Endring fra i dag</td><td class="num" id="rDiff12">–</td></tr>
+          </table>
+          <div class="hint" id="bsuHint"></div>
+        </div>
+
+        <div class="card" style="margin-top:12px;">
+          <h2>Månedsbudsjett (bankens stresstest-blikk)</h2>
+          <table>
+            <tr><td>Netto inntekt per måned</td><td class="num" id="bNetto">–</td></tr>
+            <tr><td>Levekostnader (SIFO-basert estimat)</td><td class="num" id="bLevekost">–</td></tr>
+            <tr><td>Betjening av eksisterende gjeld (stresset)</td><td class="num" id="bGjeld">–</td></tr>
+            <tr><td><b>Rom for boliglån (stresset rente)</b></td><td class="num" id="bRom">–</td></tr>
+            <tr><td>Terminbeløp nytt lån ved <span id="bRenteLbl">–</span></td><td class="num" id="bTermin">–</td></tr>
+            <tr><td>Terminbeløp ved stressrente <span id="bStressLbl">–</span></td><td class="num" id="bTerminStress">–</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ REGLER ============ -->
+  <div class="tabpane" id="tab-regler">
+    <div class="grid two">
+      <div class="rule-card"><b>10 % egenkapital</b><span>Senket fra 15 % fra 1. januar 2025. Lånet kan maks utgjøre 90 % av boligens verdi. Egenkapitalen må i praksis også dekke omkostninger (2,5 % dokumentavgift ved brukt selveierbolig).</span></div>
+      <div class="rule-card"><b>Maks 5 × inntekt i samlet gjeld</b><span>All gjeld teller: boliglån, studielån, billån, forbrukslån og hele kredittkortrammen. Kjøper dere to sammen, regnes samlet bruttoinntekt.</span></div>
+      <div class="rule-card"><b>Stresstest: rente +3 prosentpoeng (minst 7 %)</b><span>Banken må sjekke at du tåler at renten stiger 3 pp fra dagens nivå, og skal uansett regne med minst 7 % rente.</span></div>
+      <div class="rule-card"><b>Barn reduserer låneevnen</b><span>Banken bruker SIFO-referansebudsjettet for levekostnader. Flere barn = høyere beregnede utgifter = mindre rom for lån. Barnetrygd kan delvis telle som inntekt.</span></div>
+      <div class="rule-card"><b>Fleksibilitetskvoten</b><span>Bankene kan fravike kravene i inntil 10 % av utlånsvolumet per kvartal (8 % i Oslo). Brukes ofte på unge førstegangskjøpere med god betjeningsevne — verdt å spørre om hvis du er nær grensen.</span></div>
+      <div class="rule-card"><b>Avdragskrav over 60 % belåning</b><span>Låner du mer enn 60 % av boligens verdi, krever forskriften årlige avdrag (minst 2,5 % av lånet). Avdragsfrihet er altså kun mulig ved lav belåning.</span></div>
+      <div class="rule-card"><b>Sekundærbolig i Oslo: 40 % egenkapital</b><span>Gjelder kun bolig nr. 2 i Oslo — ikke relevant for førstegangskjøp, men greit å vite.</span></div>
+      <div class="rule-card"><b>Medlåntaker / kausjonist</b><span>Foreldre kan stille tilleggssikkerhet i egen bolig (realkausjon) for å dekke egenkapitalkravet, eller stå som medlåntaker for å øke inntektsgrunnlaget. Vanlig løsning for førstegangskjøpere.</span></div>
+    </div>
+    <div class="hint" style="margin-top:12px;">Kilde: utlånsforskriften (regjeringen.no / Finanstilsynet). Forskriften revideres jevnlig — sjekk regjeringen.no før kjøpet.</div>
+  </div>
+
+  <!-- ============ BANKER ============ -->
+  <div class="tabpane" id="tab-banker">
+    <div class="card">
+      <h2>Rentebildet juli 2026 (ca.-nivåer)</h2>
+      <p class="sub">Styringsrenten er 4,25 % (hevet mai 2026). Gjennomsnittlig effektiv boliglånsrente ligger rundt 5,3 %. Tallene under er omtrentlige — sjekk levende oversikter før du velger.</p>
+      <table>
+        <thead><tr><th>Type bank</th><th>Eksempler</th><th class="num">Effektiv rente (ca.)</th><th>Kommentar</th></tr></thead>
+        <tbody>
+          <tr><td>Digitale lavprisbanker</td><td>Bulder, Nybygger.no, Heder, Sbanken</td><td class="num">4,8–5,1 %</td><td>Ofte best rente for alle, uten krav om «totalkunde». Nybygger ~4,81 % krever ≤60 % belåning.</td></tr>
+          <tr><td>Fagforeningsavtaler</td><td>Via Fagforbundet, Akademikerne m.fl.</td><td class="num">5,25–5,4 %</td><td>Ofte dyrere enn lavprisbankene — regn med kontingenten før du antar at det lønner seg.</td></tr>
+          <tr><td>Storbanker</td><td>DNB, Nordea, SpareBank 1, Danske Bank</td><td class="num">5,7–6,0 %</td><td>Dyrest på listepris, men forhandlingsrom finnes. Noen har gode førstehjemslån.</td></tr>
+        </tbody>
+      </table>
+      <div class="hint">Levende sammenligninger: <a href="https://www.bytt.no/bank/boliglan/renter" target="_blank">bytt.no</a> · <a href="https://renteradar.no/" target="_blank">renteradar.no</a> · <a href="https://penger.no/boliglan/boliglanskalkulator" target="_blank">penger.no</a> · <a href="https://www.finansportalen.no" target="_blank">finansportalen.no</a> (offentlig)</div>
+    </div>
+
+    <div class="grid two" style="margin-top:12px;">
+      <div class="card">
+        <h2>Lønner det seg å bytte bank?</h2>
+        <p class="sub">Basert på lånebeløpet fra kalkulatoren.</p>
+        <div class="row">
+          <div>
+            <label>Rente i dag / bank A (%)</label>
+            <input type="number" id="inByttA" step="0.05" value="5.7">
+          </div>
+          <div>
+            <label>Tilbud / bank B (%)</label>
+            <input type="number" id="inByttB" step="0.05" value="5.0">
+          </div>
+        </div>
+        <table style="margin-top:10px;">
+          <tr><td>Besparelse per år</td><td class="num" id="byttAar">–</td></tr>
+          <tr><td>Besparelse over løpetiden</td><td class="num" id="byttTotal">–</td></tr>
+        </table>
+        <div class="hint">Å flytte boliglån er som regel gratis eller nesten gratis — ny bank ordner flyttingen, og pant kan flyttes uten full tinglysing. Tommelfinger­regel: alt over ~0,2 pp differanse er verdt å flytte for.</div>
+      </div>
+      <div class="card">
+        <h2>Strategi som førstegangskjøper</h2>
+        <table>
+          <tr><td><b>Før kjøp</b></td><td>Du trenger ikke bytte bank ennå. Hold BSU der renten er best (opptil ~6,4 %), og hent finansieringsbevis fra 2–3 banker når kjøpet nærmer seg — det er gratis og uforpliktende.</td></tr>
+          <tr><td><b>Ved kjøp</b></td><td>Be om tilbud fra både din bank og 1–2 konkurrenter. Nevn konkurrentens rente eksplisitt — bankene matcher ofte.</td></tr>
+          <tr><td><b>Etter kjøp</b></td><td>Sjekk renten årlig (f.eks. Renteradar varsler automatisk). Bytt hvis differansen er over ~0,2 pp — det tar under en time digitalt.</td></tr>
+          <tr><td><b>Sparebank-lojalitet?</b></td><td>Ingen grunn til å bli værende av gammel vane. Merk likevel: noen sparebanker (SpareBank 1-bankene m.fl.) gir kundeutbytte som reduserer reell rentekostnad — regn det inn før du sammenligner.</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ BSU ============ -->
+  <div class="tabpane" id="tab-bsu">
+    <div class="grid two">
+      <div class="card">
+        <h2>BSU-regler 2026</h2>
+        <table>
+          <tr><td>Maks sparing per år</td><td class="num">27 500 kr</td></tr>
+          <tr><td>Maks totalt på konto</td><td class="num">300 000 kr</td></tr>
+          <tr><td>Skattefradrag</td><td class="num">10 % = inntil 2 750 kr/år</td></tr>
+          <tr><td>Aldersgrense</td><td class="num">T.o.m. året du fyller 33</td></tr>
+          <tr><td>Beste BSU-renter</td><td class="num">opptil ~6,4 %</td></tr>
+        </table>
+        <div class="hint">Viktig: skattefradraget gjelder bare så lenge du <b>ikke</b> eier bolig. Pengene må brukes på bolig (kjøp, oppussing eller nedbetaling av boliglån). Fyll opp årets kvote <b>før</b> kjøpet — etter kjøpet mister du fradraget.</div>
+        <div class="hint">BSU kan telle som egenkapital ved kjøp, og aktiv BSU-sparing gir hos flere banker tilgang til deres beste førstehjemsrenter.</div>
+      </div>
+      <div class="card">
+        <h2>Førstehjemslån</h2>
+        <p class="sub">Mange banker har egne lån for førstegangskjøpere under 34 år.</p>
+        <table>
+          <tr><td>Typisk fordel</td><td>Bedre rente enn ordinært boliglån ved høy belåning (opptil 90 %), lavere/ingen etableringsgebyr.</td></tr>
+          <tr><td>Typiske krav</td><td>Første bolig, under 34 år, ofte BSU-sparing i banken.</td></tr>
+          <tr><td>Verdt å sjekke</td><td>Sammenlign førstehjemslån-tilbud opp mot lavprisbankenes ordinære renter — lavprisbankene vinner ofte likevel.</td></tr>
+          <tr><td>Startlån (kommunen)</td><td>Husbankens startlån via kommunen er for dem som ikke får vanlig banklån — trolig ikke aktuelt, men greit å vite at det finnes.</td></tr>
+        </table>
+        <div class="hint">Egenkapital-tips utover BSU: aksjesparekonto/fond bør flyttes gradvis mot bankkonto siste 6–12 mnd før kjøp, slik at et børsfall ikke ødelegger egenkapitalen rett før budrunden.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PLAN ============ -->
+  <div class="tabpane" id="tab-plan">
+    <div class="card">
+      <h2>12-månedersplan frem mot kjøp</h2>
+      <p class="sub">Huk av etter hvert — status lagres lokalt.</p>
+      <div id="planList"></div>
+    </div>
+  </div>
+
+  <footer>
+    Estimater basert på utlånsforskriften og markedsdata per juli 2026. Dette er et planleggingsverktøy, ikke finansiell rådgivning — bankens egen kredittvurdering avgjør. Levekostnader er SIFO-baserte estimater; juster forutsetningene så de ligner din økonomi.
+  </footer>
+</div>
+
+<script>
+// ==================== KONFIG (lett å utvide senere) ====================
+const CFG = {
+  gjeldsgradFaktor: 5,        // maks samlet gjeld = 5 x bruttoinntekt
+  ekKrav: 0.10,               // 10 % egenkapital
+  stressPaaslag: 3,           // stresstest: rente + 3 pp
+  stressGulv: 7,              // ...men minst 7 %
+  dokAvgift: 0.025,           // dokumentavgift brukt selveier
+  gebyrKjop: 10000,           // tinglysing/oppgjør ca.
+  gebyrBorettslag: 8000,      // ca. omkostninger borettslag/nybygg
+  levekostVoksen1: 15000,     // SIFO-basert estimat pr mnd
+  levekostVoksen2: 9000,      // ekstra voksen (stordriftsfordel)
+  levekostBarn: 5500,         // pr barn pr mnd (snitt)
+  eksGjeldNedbetalingAar: 20, // antatt nedbetalingstid eksisterende gjeld
+  bsuAarlig: 27500,
+};
+
+const DEFAULTS = {
+  inLantakere: "1", inInntekt1: 550000, inInntekt2: 550000, inEk: 300000,
+  inSparing: 8000, inBarn: 0, inStudielaan: 350000, inBillaan: 0,
+  inForbruk: 0, inKreditt: 0, inRente: 5.3, inLopetid: 25, inSkatt: 28,
+  inBoligtype: "selveier", inByttA: 5.7, inByttB: 5.0,
+};
+
+const LS = "boligdash-v1";
+const nok = v => isFinite(v) ? Math.round(v).toLocaleString("nb-NO") + " kr" : "–";
+const nokM = v => {
+  if (!isFinite(v) || v <= 0) return "0 kr";
+  return v >= 1e6 ? (v/1e6).toLocaleString("nb-NO",{maximumFractionDigits:2}) + " mill." : Math.round(v).toLocaleString("nb-NO") + " kr";
+};
+
+// ==================== STATE ====================
+function loadState() {
+  try { return Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(LS) || "{}")); }
+  catch { return {...DEFAULTS}; }
+}
+function saveState(s) { localStorage.setItem(LS, JSON.stringify(s)); }
+let state = loadState();
+
+const inputIds = Object.keys(DEFAULTS);
+inputIds.forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.value = state[id];
+  el.addEventListener("input", () => {
+    state[id] = el.type === "number" ? parseFloat(el.value) || 0 : el.value;
+    saveState(state); render();
+  });
+});
+
+// ==================== BEREGNING ====================
+function annuityFactor(rentePct, aar) {
+  const m = rentePct / 100 / 12, n = aar * 12;
+  if (m <= 0) return n;
+  return (1 - Math.pow(1 + m, -n)) / m; // lån = terminbeløp * faktor
+}
+function terminBelop(laan, rentePct, aar) {
+  const f = annuityFactor(rentePct, aar);
+  return f > 0 ? laan / f : 0;
+}
+
+function beregn(ekOverride) {
+  const to = state.inLantakere === "2";
+  const brutto = (state.inInntekt1 || 0) + (to ? (state.inInntekt2 || 0) : 0);
+  const ek = ekOverride !== undefined ? ekOverride : (state.inEk || 0);
+  const eksGjeld = (state.inStudielaan||0) + (state.inBillaan||0) + (state.inForbruk||0) + (state.inKreditt||0);
+  const stressRente = Math.max((state.inRente||0) + CFG.stressPaaslag, CFG.stressGulv);
+  const lopetid = state.inLopetid || 25;
+
+  // 1) Gjeldsgrad
+  const maksLaanGjeldsgrad = Math.max(0, CFG.gjeldsgradFaktor * brutto - eksGjeld);
+
+  // 2) Betjeningsevne (stresstest)
+  const netto = brutto * (1 - (state.inSkatt||0)/100) / 12;
+  const voksne = to ? 2 : 1;
+  const levekost = CFG.levekostVoksen1 + (voksne > 1 ? CFG.levekostVoksen2 : 0) + (state.inBarn||0) * CFG.levekostBarn;
+  const eksGjeldTermin = terminBelop(eksGjeld, stressRente, CFG.eksGjeldNedbetalingAar);
+  const rom = netto - levekost - eksGjeldTermin;
+  const maksLaanBetjening = Math.max(0, rom * annuityFactor(stressRente, lopetid));
+
+  // Omkostninger som funksjon av kjøpesum
+  const selveier = state.inBoligtype === "selveier";
+  const omkSats = selveier ? CFG.dokAvgift : 0;
+  const omkFast = selveier ? CFG.gebyrKjop : CFG.gebyrBorettslag;
+
+  // 2b) EK-grense: EK må dekke 10 % av kjøpesum + omkostninger
+  const maksKjopEk = Math.max(0, (ek - omkFast) / (CFG.ekKrav + omkSats));
+
+  // Kjøpesum-grense fra lånegrensene: K + omk(K) <= laan + ek
+  const laanGrense = Math.min(maksLaanGjeldsgrad, maksLaanBetjening);
+  const maksKjopLaan = Math.max(0, (laanGrense + ek - omkFast) / (1 + omkSats));
+
+  const maksKjop = Math.min(maksKjopEk, maksKjopLaan);
+  const faktiskLaan = Math.max(0, Math.min(laanGrense, maksKjop * (1 + omkSats) + omkFast - ek));
+
+  // Flaskehals
+  let flaske, flaskeTips;
+  if (maksKjopEk <= maksKjopLaan * 0.999) {
+    flaske = "Egenkapital";
+    flaskeTips = "Egenkapitalen begrenser deg mest. Hver 10 000 kr ekstra spart gir ca. " + nok(10000 / (CFG.ekKrav + omkSats)) + " høyere kjøpesum. Vurder også om foreldre kan stille realkausjon.";
+  } else if (maksLaanGjeldsgrad < maksLaanBetjening) {
+    flaske = "Gjeldsgrad (5×)";
+    flaskeTips = "5×-inntektsregelen begrenser deg mest. Nedbetaling av gjeld hjelper krone for krone — og å si opp kredittkortrammer er gratis låneevne. Høyere inntekt (eller medlåntaker) gir 5 kr lånerom per krone.";
+  } else {
+    flaske = "Betjeningsevne";
+    flaskeTips = "Stresstesten begrenser deg mest. Lavere faste utgifter, nedbetalt smågjeld eller lengre løpetid øker rommet. Sjekk at skatteprosent og levekostnader i forutsetningene stemmer for deg.";
+  }
+
+  return { brutto, ek, eksGjeld, stressRente, lopetid, netto, levekost, eksGjeldTermin, rom,
+           maksLaanGjeldsgrad, maksLaanBetjening, maksKjopEk, maksKjopLaan, maksKjop, faktiskLaan,
+           flaske, flaskeTips, laanGrense };
+}
+
+// ==================== RENDER ====================
+let chart;
+function render() {
+  document.getElementById("wrapInntekt2").style.display = state.inLantakere === "2" ? "" : "none";
+  const r = beregn();
+
+  document.getElementById("kpiKjopesum").textContent = nokM(r.maksKjop);
+  document.getElementById("kpiKjopesumNote").textContent = "med dagens egenkapital";
+  document.getElementById("kpiLaan").textContent = nokM(r.faktiskLaan);
+  document.getElementById("kpiLaanNote").textContent = "gjeldsgrad tillater " + nokM(r.maksLaanGjeldsgrad);
+  const termin = terminBelop(r.faktiskLaan, state.inRente, r.lopetid);
+  document.getElementById("kpiTermin").textContent = nok(termin) ;
+  document.getElementById("kpiTerminNote").textContent = "ved " + state.inRente + " % / " + r.lopetid + " år";
+  document.getElementById("kpiFlaske").textContent = r.flaske;
+  document.getElementById("kpiFlaskeNote").textContent = "det som begrenser deg mest";
+
+  document.getElementById("rGjeldsgrad").textContent = nokM(r.maksLaanGjeldsgrad);
+  document.getElementById("rEk").textContent = nokM(r.maksKjopEk) + " (kjøpesum)";
+  document.getElementById("rBetjening").textContent = nokM(r.maksLaanBetjening);
+  const fb = document.getElementById("flaskeBox");
+  fb.style.display = ""; fb.innerHTML = "<b>Flaskehals: " + r.flaske + ".</b> " + r.flaskeTips;
+
+  // 12 mnd frem
+  const ek12 = (state.inEk||0) + (state.inSparing||0) * 12;
+  const r12 = beregn(ek12);
+  document.getElementById("rEk12").textContent = nok(ek12);
+  document.getElementById("rKjop12").textContent = nokM(r12.maksKjop);
+  const diff = r12.maksKjop - r.maksKjop;
+  document.getElementById("rDiff12").textContent = (diff >= 0 ? "+" : "") + nokM(Math.abs(diff)).replace(" kr","") + (diff >= 1e6 ? "" : " kr");
+  document.getElementById("bsuHint").innerHTML =
+    "Husk BSU: inntil <b>27 500 kr</b> av årets sparing gir 2 750 kr i skattefradrag (til sammen 5 500 kr fradrag hvis dere er to under 34). Fyll kvoten før kjøpet.";
+
+  // Budsjett
+  document.getElementById("bNetto").textContent = nok(r.netto);
+  document.getElementById("bLevekost").textContent = "− " + nok(r.levekost);
+  document.getElementById("bGjeld").textContent = "− " + nok(r.eksGjeldTermin);
+  document.getElementById("bRom").textContent = nok(Math.max(0, r.rom));
+  document.getElementById("bRenteLbl").textContent = state.inRente + " %";
+  document.getElementById("bStressLbl").textContent = r.stressRente.toFixed(1) + " %";
+  document.getElementById("bTermin").textContent = nok(termin);
+  document.getElementById("bTerminStress").textContent = nok(terminBelop(r.faktiskLaan, r.stressRente, r.lopetid));
+
+  // Bytte
+  const lb = r.faktiskLaan;
+  const dA = terminBelop(lb, state.inByttA, r.lopetid) * 12;
+  const dB = terminBelop(lb, state.inByttB, r.lopetid) * 12;
+  document.getElementById("byttAar").textContent = nok(Math.max(0, dA - dB)) + " / år";
+  document.getElementById("byttTotal").textContent = nok(Math.max(0, (dA - dB) * r.lopetid));
+
+  // Chart
+  const data = [r.maksLaanGjeldsgrad, Math.max(0,(r.maksKjopEk*(1+(state.inBoligtype==="selveier"?CFG.dokAvgift:0))+ (state.inBoligtype==="selveier"?CFG.gebyrKjop:CFG.gebyrBorettslag)) - r.ek), r.maksLaanBetjening];
+  const labels = ["Gjeldsgrad 5×", "Egenkapital 10 %", "Betjeningsevne"];
+  const colors = labels.map((_, i) => {
+    const min = Math.min(...data);
+    return data[i] <= min * 1.001 ? "#b45309" : "#0f5c5a";
+  });
+  if (chart) { chart.data.datasets[0].data = data; chart.data.datasets[0].backgroundColor = colors; chart.update(); }
+  else {
+    chart = new Chart(document.getElementById("chartGrenser"), {
+      type: "bar",
+      data: { labels, datasets: [{ label: "Maks nytt lån (kr)", data, backgroundColor: colors, borderRadius: 5 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => nokM(c.raw) } } },
+        scales: { y: { ticks: { callback: v => (v/1e6).toLocaleString("nb-NO") + " mill." } } }
+      }
+    });
+  }
+}
+
+// ==================== PLAN / SJEKKLISTE ====================
+const PLAN = [
+  ["Nå (12 mnd før)", [
+    ["Sett opp fast sparetrekk", "Automatisk trekk til BSU/sparekonto rett etter lønn. BSU først (27 500 kr/år), resten til høyrentekonto."],
+    ["Rydd i gjeld", "Si opp ubrukte kredittkort (hele rammen teller som gjeld) og betal ned forbrukslån først — de ødelegger mest for låneevnen."],
+    ["Sjekk kredittscore", "Hent gratis kredittsjekk av deg selv og rett opp eventuelle betalingsanmerkninger — de kan blokkere lån helt."],
+    ["Avklar om dere kjøper én eller to", "To låntakere gir dobbel inntekt i 5×-regelen, men begges gjeld teller. Avklar også BSU-status for begge."]
+  ]],
+  ["6–9 mnd før", [
+    ["Følg boligmarkedet der du vil kjøpe", "Gå på visninger uten å by. Lær prisnivået slik at du kjenner igjen et godt kjøp."],
+    ["Flytt risikable sparepenger", "Fond/aksjer som skal bli egenkapital bør gradvis over til bankkonto, så et børsfall ikke rammer rett før kjøp."],
+    ["Sjekk fagforenings- og medlemsfordeler", "Har du/dere medlemskap som gir boliglånsrabatt? Sammenlign mot lavprisbankene — det lønner seg ikke alltid."]
+  ]],
+  ["3 mnd før", [
+    ["Hent finansieringsbevis fra 2–3 banker", "Gratis og uforpliktende. Gir nøyaktig svar på hva du får låne, og bankene konkurrerer om deg. Gyldig ca. 3 mnd."],
+    ["Fyll årets BSU-kvote", "Siste sjanse for skattefradrag — etter at du eier bolig bortfaller fradraget."],
+    ["Sett budgrense", "Bestem maksbeløp før budrunden (inkl. omkostninger) og hold deg til det."]
+  ]],
+  ["Ved kjøp", [
+    ["Forhandle rente med konkurrerende tilbud", "Vis bankene hverandres tilbud. Spør spesifikt om førstehjemslån/ung-fordeler."],
+    ["Les tilstandsrapport og protokoller nøye", "Sjekk TG2/TG3-punkter, felleskostnader og vedlikeholdsplaner (borettslag/sameie)."],
+    ["Etter kjøp: sjekk renten årlig", "Sett en årlig påminnelse eller bruk renteradar.no — bytt bank ved over ~0,2 pp differanse."]
+  ]]
+];
+
+function renderPlan() {
+  const done = JSON.parse(localStorage.getItem(LS + "-plan") || "{}");
+  const box = document.getElementById("planList");
+  box.innerHTML = "";
+  PLAN.forEach(([fase, items], fi) => {
+    const h = document.createElement("div"); h.className = "phase"; h.textContent = fase; box.appendChild(h);
+    items.forEach(([t, d], ii) => {
+      const key = fi + "-" + ii;
+      const row = document.createElement("div"); row.className = "check" + (done[key] ? " done" : "");
+      row.innerHTML = '<input type="checkbox" ' + (done[key] ? "checked" : "") + '><div><div class="t">' + t + '</div><div class="d">' + d + '</div></div>';
+      row.querySelector("input").addEventListener("change", e => {
+        done[key] = e.target.checked;
+        localStorage.setItem(LS + "-plan", JSON.stringify(done));
+        row.classList.toggle("done", e.target.checked);
+      });
+      box.appendChild(row);
+    });
+  });
+}
+
+// ==================== TABS ====================
+document.querySelectorAll("nav.tabs button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("nav.tabs button").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tabpane").forEach(p => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+    if (btn.dataset.tab === "kalk") render();
+  });
+});
+
+renderPlan();
+render();
+</script>
+</body>
+</html>
