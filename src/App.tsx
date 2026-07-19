@@ -35,7 +35,7 @@ export default function App() {
           <h1>Hvor mye bolig har du råd til?</h1>
           <p className="top__intro">
             Planleggingsverktøy for deg som skal kjøpe din første bolig i løpet av det neste året. Test tallene dine mot
-            utlånsforskriften — helt uforpliktende.
+            utlånsforskriften, helt uforpliktende.
           </p>
         </div>
         <div className="top__meta">

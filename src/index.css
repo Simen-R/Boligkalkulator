@@ -87,22 +87,30 @@ a:hover { color: var(--green-dark); }
 .field-label--small { font-size: 12px; color: var(--faint); font-weight: 400; margin-bottom: 5px; }
 .field-label--plain { font-weight: 400; color: var(--ink-soft); }
 
-.money-input { position: relative; margin-bottom: 18px; }
-.money-input input {
+.money-input { margin-bottom: 18px; }
+.money-input__box { position: relative; }
+.money-input__box input {
   width: 100%; border: 1px solid var(--input-border); border-radius: 10px;
   background: var(--input-bg); color: var(--ink);
   font-family: var(--font-display); font-size: 16px; padding: 12px 44px 12px 13px;
 }
-.money-input span {
+.money-input__box span {
   position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
   color: var(--faint); font-size: 14px; pointer-events: none;
 }
-.money-input--md input { font-size: 15px; padding: 11px 38px 11px 12px; }
-.money-input--md span { right: 11px; font-size: 13px; }
+.money-input--md .money-input__box input { font-size: 15px; padding: 11px 38px 11px 12px; }
+.money-input--md .money-input__box span { right: 11px; font-size: 13px; }
 .money-input--sm { margin-bottom: 0; }
-.money-input--sm input { font-size: 14px; padding: 9px 38px 9px 11px; border-radius: 9px; }
-.money-input--sm span { right: 11px; font-size: 12px; }
-.money-input input:focus { outline: 2px solid var(--green-border); border-color: var(--green); }
+.money-input--sm .money-input__box input { font-size: 14px; padding: 9px 38px 9px 11px; border-radius: 9px; }
+.money-input--sm .money-input__box span { right: 11px; font-size: 12px; }
+.money-input__box input:focus { outline: 2px solid var(--green-border); border-color: var(--green); }
+
+/* Slank slider som følger et tallfelt */
+input[type='range'].field-slider { height: 4px; margin: 9px 0 0; display: block; }
+input[type='range'].field-slider::-webkit-slider-thumb {
+  width: 15px; height: 15px; border-width: 2px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+input[type='range'].field-slider::-moz-range-thumb { width: 15px; height: 15px; border-width: 2px; }
 
 input[type='number']::-webkit-outer-spin-button,
 input[type='number']::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -157,9 +165,10 @@ input[type='range']::-moz-range-thumb {
 .results { display: flex; flex-direction: column; gap: 22px; }
 
 .debt-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
-.debt-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 11px; }
-.debt-row > span { font-size: 13.5px; color: var(--ink-soft); }
-.debt-row .money-input { width: 150px; flex-shrink: 0; }
+.debt-row { margin-bottom: 15px; }
+.debt-row__top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.debt-row__top > span { font-size: 13.5px; color: var(--ink-soft); }
+.debt-row__top .money-input { width: 150px; flex-shrink: 0; }
 .debt-pair { margin-bottom: 12px; }
 .debt-pair__label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
 .debt-pair__label > span:first-child { font-size: 13.5px; color: var(--ink-soft); }

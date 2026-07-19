@@ -2,7 +2,7 @@ import { compute } from '../lib/finance'
 import { kr } from '../lib/format'
 import { NECK_LABELS, NECK_TIPS } from '../data/content'
 import { effectiveDebt, totalIncome, type AppState } from '../state'
-import { MoneyInput, Segmented, SliderRow } from './inputs'
+import { MoneyInput, Segmented, Slider, SliderRow } from './inputs'
 import { LimitsChart, ProjectionChart } from './charts'
 
 interface Props {
@@ -11,11 +11,17 @@ interface Props {
 }
 
 const DEBT_FIELDS = [
-  { label: 'Studielån', key: 'studielan' },
-  { label: 'Billån', key: 'billan' },
-  { label: 'Forbrukslån', key: 'forbrukslan' },
-  { label: 'Kredittkortramme', key: 'kredittramme' },
+  { label: 'Studielån', key: 'studielan', max: 1_000_000, step: 10_000 },
+  { label: 'Billån', key: 'billan', max: 1_000_000, step: 10_000 },
+  { label: 'Forbrukslån', key: 'forbrukslan', max: 500_000, step: 5_000 },
+  { label: 'Kredittkortramme', key: 'kredittramme', max: 300_000, step: 5_000 },
 ] as const
+
+const INCOME_RANGE = { min: 0, max: 2_000_000, step: 10_000 }
+const EK_RANGE = { min: 0, max: 3_000_000, step: 10_000 }
+const SPARING_RANGE = { min: 0, max: 25_000, step: 500 }
+const BARN_RANGE = { min: 0, max: 6, step: 1 }
+const NEDGJELD_RANGE = { min: 0, max: 300_000, step: 5_000 }
 
 export function CalculatorTab({ state: s, update }: Props) {
   const income = totalIncome(s)
@@ -67,7 +73,7 @@ export function CalculatorTab({ state: s, update }: Props) {
             <label className="field-label">
               Bruttoinntekt <span>/ år</span>
             </label>
-            <MoneyInput value={s.income1} onChange={(n) => update({ income1: n })} />
+            <MoneyInput value={s.income1} onChange={(n) => update({ income1: n })} slider={INCOME_RANGE} />
           </>
         ) : (
           <>
@@ -77,11 +83,11 @@ export function CalculatorTab({ state: s, update }: Props) {
             <div className="grid-2">
               <div>
                 <label className="field-label field-label--small">Person 1</label>
-                <MoneyInput size="md" value={s.income1} onChange={(n) => update({ income1: n })} />
+                <MoneyInput size="md" value={s.income1} onChange={(n) => update({ income1: n })} slider={INCOME_RANGE} />
               </div>
               <div>
                 <label className="field-label field-label--small">Person 2</label>
-                <MoneyInput size="md" value={s.income2} onChange={(n) => update({ income2: n })} />
+                <MoneyInput size="md" value={s.income2} onChange={(n) => update({ income2: n })} slider={INCOME_RANGE} />
               </div>
             </div>
             <div className="income-total">
@@ -93,16 +99,23 @@ export function CalculatorTab({ state: s, update }: Props) {
         <label className="field-label">
           Egenkapital <span>(inkl. BSU)</span>
         </label>
-        <MoneyInput value={s.egenkapital} onChange={(n) => update({ egenkapital: n })} />
+        <MoneyInput value={s.egenkapital} onChange={(n) => update({ egenkapital: n })} slider={EK_RANGE} />
 
         <div className="grid-2">
           <div>
             <label className="field-label">Sparing / mnd</label>
-            <MoneyInput size="md" step={500} value={s.sparing} onChange={(n) => update({ sparing: n })} />
+            <MoneyInput size="md" step={500} value={s.sparing} onChange={(n) => update({ sparing: n })} slider={SPARING_RANGE} />
           </div>
           <div>
             <label className="field-label">Antall barn</label>
-            <MoneyInput size="md" step={1} suffix="" value={s.barn} onChange={(n) => update({ barn: Math.max(0, Math.round(n)) })} />
+            <MoneyInput
+              size="md"
+              step={1}
+              suffix=""
+              value={s.barn}
+              onChange={(n) => update({ barn: Math.max(0, Math.round(n)) })}
+              slider={BARN_RANGE}
+            />
           </div>
         </div>
 
@@ -126,8 +139,11 @@ export function CalculatorTab({ state: s, update }: Props) {
         {!perPersonDebt ? (
           DEBT_FIELDS.map((d) => (
             <div key={d.key} className="debt-row">
-              <span>{d.label}</span>
-              <MoneyInput size="sm" step={5000} alignRight value={s[d.key]} onChange={(n) => update({ [d.key]: n })} />
+              <div className="debt-row__top">
+                <span>{d.label}</span>
+                <MoneyInput size="sm" step={d.step} alignRight value={s[d.key]} onChange={(n) => update({ [d.key]: n })} />
+              </div>
+              <Slider min={0} max={d.max} step={d.step} value={s[d.key]} onChange={(n) => update({ [d.key]: n })} />
             </div>
           ))
         ) : (
@@ -138,6 +154,7 @@ export function CalculatorTab({ state: s, update }: Props) {
             </div>
             {DEBT_FIELDS.map((d) => {
               const key2 = `${d.key}2` as const
+              const range = { min: 0, max: d.max, step: d.step }
               return (
                 <div key={d.key} className="debt-pair">
                   <div className="debt-pair__label">
@@ -145,8 +162,8 @@ export function CalculatorTab({ state: s, update }: Props) {
                     <span className="debt-pair__total">samlet {kr((s[d.key] || 0) + (s[key2] || 0))}</span>
                   </div>
                   <div className="grid-2 grid-2--tight">
-                    <MoneyInput size="sm" step={5000} alignRight value={s[d.key]} onChange={(n) => update({ [d.key]: n })} />
-                    <MoneyInput size="sm" step={5000} alignRight value={s[key2]} onChange={(n) => update({ [key2]: n })} />
+                    <MoneyInput size="sm" step={d.step} alignRight value={s[d.key]} onChange={(n) => update({ [d.key]: n })} slider={range} />
+                    <MoneyInput size="sm" step={d.step} alignRight value={s[key2]} onChange={(n) => update({ [key2]: n })} slider={range} />
                   </div>
                 </div>
               )
@@ -260,7 +277,7 @@ export function CalculatorTab({ state: s, update }: Props) {
             />
             <div>
               <label className="field-label field-label--plain">Nedbetalt gjeld i året</label>
-              <MoneyInput size="sm" step={5000} value={s.nedgjeld} onChange={(n) => update({ nedgjeld: n })} />
+              <MoneyInput size="sm" step={5000} value={s.nedgjeld} onChange={(n) => update({ nedgjeld: n })} slider={NEDGJELD_RANGE} />
             </div>
             <div>
               <div className="field-label field-label--plain">Egenkapital om 12 mnd</div>

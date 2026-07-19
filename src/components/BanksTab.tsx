@@ -63,21 +63,48 @@ export function BanksTab({ state: s, update }: Props) {
         <p className="card__sub">Hva sparer du på å bytte?</p>
 
         <label className="field-label">Lånebeløp</label>
-        <MoneyInput size="md" step={50000} value={s.byLan} onChange={(n) => update({ byLan: n })} />
+        <MoneyInput
+          size="md"
+          step={50000}
+          value={s.byLan}
+          onChange={(n) => update({ byLan: n })}
+          slider={{ min: 0, max: 10_000_000, step: 50_000 }}
+        />
 
         <div className="grid-2">
           <div>
             <label className="field-label">Dagens rente</label>
-            <MoneyInput size="md" step={0.05} suffix="%" value={s.byOld} onChange={(n) => update({ byOld: n })} />
+            <MoneyInput
+              size="md"
+              step={0.05}
+              suffix="%"
+              value={s.byOld}
+              onChange={(n) => update({ byOld: n })}
+              slider={{ min: 2, max: 10, step: 0.05 }}
+            />
           </div>
           <div>
             <label className="field-label">Ny rente</label>
-            <MoneyInput size="md" step={0.05} suffix="%" value={s.byNew} onChange={(n) => update({ byNew: n })} />
+            <MoneyInput
+              size="md"
+              step={0.05}
+              suffix="%"
+              value={s.byNew}
+              onChange={(n) => update({ byNew: n })}
+              slider={{ min: 2, max: 10, step: 0.05 }}
+            />
           </div>
         </div>
 
         <label className="field-label">Restløpetid (år)</label>
-        <MoneyInput size="md" step={1} suffix="" value={s.byAar} onChange={(n) => update({ byAar: Math.max(1, Math.round(n)) })} />
+        <MoneyInput
+          size="md"
+          step={1}
+          suffix=""
+          value={s.byAar}
+          onChange={(n) => update({ byAar: Math.max(1, Math.round(n)) })}
+          slider={{ min: 1, max: 30, step: 1 }}
+        />
 
         <div className={`switch-result switch-result--${tone}`}>
           <div className="switch-result__headline">{headline}</div>
